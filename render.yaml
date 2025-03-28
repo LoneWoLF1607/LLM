@@ -1,16 +1,20 @@
 services:
   - type: web
     name: RAG
-    env: python3.12
-    buildCommand: |
-      # Download ChromeDriver
-      CHROME_DRIVER_VERSION=$(curl -sS https://storage.googleapis.com/134.0.6998.165)
-      wget -N https://storage.googleapis.com/chrome-for-testing-public/134.0.6998.165/linux64/chromedriver-linux64.zip -P ~/tmp
-      unzip ~/tmp/chromedriver_linux64.zip -d ~/tmp
-      sudo mv -f ~/tmp/chromedriver /usr/local/bin/chromedriver
-      sudo chown root:root /usr/local/bin/chromedriver
-      sudo chmod 0755 /usr/local/bin/chromedriver
-
+    runtime: python3
     envVars:
-      - key: CHROMEDRIVER_PATH
-        value: /usr/local/bin/chromedriver
+      - key: GEMINI_API_KEY
+        value: "AIzaSyDWiXZueejp1eE61y5FeQf-S4U2EM3U0rQ"
+    buildCommand: |
+      apt-get update && apt-get install -y wget unzip
+      pip install -r requirements.txt
+      # Install Google Chrome
+      wget -q https://dl.google.com/linux/direct/google-chrome-stable_current_amd64.deb
+      apt install -y ./google-chrome-stable_current_amd64.deb
+      # Install ChromeDriver (using version 134.0.6998.165 for Linux)
+      wget -q https://storage.googleapis.com/chrome-for-testing-public/134.0.6998.165/linux64/chromedriver-linux64.zip
+      unzip chromedriver-linux64.zip -d /usr/local/bin/
+      chmod +x /usr/local/bin/chromedriver
+      rm chromedriver-linux64.zip
+    startCommand: uvicorn hack:app --host 0.0.0.0 --port 8000
+    plan: free
