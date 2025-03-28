@@ -33,8 +33,12 @@ def setup_selenium():
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
     chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-    chrome_driver_path = "C:/Users/navne/OneDrive/Desktop/chromedriver-win64/chromedriver.exe"
-    service = Service(chrome_driver_path)
+    
+    # Use environment variables provided by Render for Linux
+    chrome_options.binary_location = os.getenv("CHROME_BIN", "/usr/bin/google-chrome-stable")
+    chromedriver_path = os.getenv("CHROMEDRIVER_PATH", "/usr/local/bin/chromedriver")
+    
+    service = Service(chromedriver_path)
     driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
         "source": "Object.defineProperty(navigator, 'webdriver', { get: () => undefined })"
@@ -91,7 +95,6 @@ def scrape_jobs_from_naukri(query: str, location: str = "", num_jobs: int = 10):
             continue
     driver.quit()
     return jobs
-
 
 def add_jobs_to_index(jobs):
     global index, job_metadata
