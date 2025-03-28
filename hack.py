@@ -3,6 +3,7 @@ import time
 import requests
 import faiss
 import re
+import zipfile
 import numpy as np
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -26,6 +27,23 @@ job_metadata = []
 
 app = FastAPI()
 
+def setup_chromedriver():
+    chrome_driver_url = "https://storage.googleapis.com/chrome-for-testing-public/134.0.6998.165/win64/chromedriver-win64.zip"
+    driver_zip_path = "C:/Users/navne/Downloads/LLM hack-2/chromedriver-win64.zip"
+    driver_extract_path = "C:/Users/navne/Downloads/LLM hack-2/chromedriver-win64/chromedriver-win64"
+    driver_binary_path = os.path.join(driver_extract_path, "chromedriver.exe")
+
+    if not os.path.exists(driver_binary_path):
+        response = requests.get(chrome_driver_url, stream=True)
+        with open(driver_zip_path, "wb") as file:
+            for chunk in response.iter_content(chunk_size=8192):
+                file.write(chunk)
+        with zipfile.ZipFile(driver_zip_path, 'r') as zip_ref:
+            zip_ref.extractall(driver_extract_path)
+        os.remove(driver_zip_path)
+    return driver_binary_path
+
+
 def setup_selenium():
     chrome_options = Options()
     chrome_options.add_argument("--headless")
@@ -33,7 +51,8 @@ def setup_selenium():
     chrome_options.add_argument("--disable-dev-shm-usage")
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
     chrome_options.add_argument("user-agent=Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36")
-    chrome_driver_path = "C:/Users/navne/OneDrive/Desktop/chromedriver-win64/chromedriver.exe"
+    
+    chrome_driver_path = setup_chromedriver()
     service = Service(chrome_driver_path)
     driver = webdriver.Chrome(service=service, options=chrome_options)
     driver.execute_cdp_cmd("Page.addScriptToEvaluateOnNewDocument", {
@@ -55,29 +74,24 @@ def scrape_jobs_from_naukri(query: str, location: str = "", num_jobs: int = 10):
         try:
             try:
                 title = card.find_element(By.XPATH, ".//a[contains(@class, 'title')]").text
-            except Exception as e:
-                print(f"Error extracting job title: {e}")
+            except:
                 title = "N/A"
             try:
                 company = card.find_element(By.XPATH, ".//a[contains(@class, 'comp-name')]").text
-            except Exception as e:
-                print(f"Error extracting company name: {e}")
+            except:
                 company = "N/A"
             try:
                 location_text = card.find_element(By.XPATH, ".//span[contains(@class, 'loc-wrap')]//span").text
-            except Exception as e:
-                print(f"Error extracting location: {e}")
+            except:
                 location_text = "N/A"
             try:
                 exp = card.find_element(By.XPATH, ".//span[contains(@class, 'expwdth')]").text
-            except Exception as e:
-                print(f"Error extracting experience: {e}")
+            except:
                 exp = "N/A"
             try:
                 raw_skills = card.find_element(By.XPATH, ".//ul[contains(@class, 'tags-gt')]").text
                 skills = re.sub(r"([a-z])([A-Z])", r"\1 \2", raw_skills)
-            except Exception as e:
-                print(f"Error extracting skills: {e}")
+            except:
                 skills = "N/A"
             jobs.append({
                 "title": title,
@@ -86,8 +100,7 @@ def scrape_jobs_from_naukri(query: str, location: str = "", num_jobs: int = 10):
                 "experience": exp,
                 "skills": skills
             })
-        except Exception as e:
-            print(f"Error extracting job details: {e}")
+        except:
             continue
     driver.quit()
     return jobs
